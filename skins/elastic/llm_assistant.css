@@ -1,0 +1,212 @@
+// File: skins/elastic/llm_assistant.css
+#llm-assistant-panel {
+    position: fixed;
+    top: 50px;
+    right: 20px;
+    width: 400px;
+    max-height: 600px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 10000;
+    font-family: Arial, sans-serif;
+}
+
+.llm-assistant-header {
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+    border-radius: 6px 6px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.llm-assistant-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+#llm-assistant-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#llm-assistant-close:hover {
+    color: #333;
+    background: #e9ecef;
+    border-radius: 3px;
+}
+
+.llm-assistant-content {
+    padding: 15px;
+}
+
+.llm-assistant-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.llm-action-btn {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    background: #f8f9fa;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.llm-action-btn:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.llm-action-btn.active {
+    background: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+
+.llm-assistant-form textarea {
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    resize: vertical;
+}
+
+.llm-assistant-form textarea:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+.llm-assistant-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.llm-assistant-buttons button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #0056b3;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: #545b62;
+}
+
+.llm-assistant-buttons button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#llm-response {
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 12px;
+    background: #f8f9fa;
+}
+
+#llm-response h4 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #495057;
+}
+
+#llm-response-content {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #333;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#llm-loading {
+    text-align: center;
+    padding: 20px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.llm-error {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #f5c6cb;
+    font-size: 13px;
+}
+
+#llm-assistant-toggle {
+    background: #17a2b8;
+    color: white;
+    margin-right: 5px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 12px;
+    display: inline-block;
+}
+
+#llm-assistant-toggle:hover {
+    background: #138496;
+    color: white;
+    text-decoration: none;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    #llm-assistant-panel {
+        right: 10px;
+        left: 10px;
+        width: auto;
+        top: 10px;
+    }
+    
+    .llm-assistant-actions {
+        flex-direction: column;
+    }
+    
+    .llm-action-btn {
+        text-align: center;
+    }
+}
