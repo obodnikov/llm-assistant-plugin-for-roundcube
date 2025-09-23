@@ -1,0 +1,21 @@
+// File: config.inc.php.dist
+<?php
+
+// LLM Assistant Plugin Configuration
+
+// API Provider (currently only 'openai' is supported)
+$config['llm_assistant_provider'] = 'openai';
+
+// API Key for the LLM provider
+$config['llm_assistant_api_key'] = '';
+
+// Model to use (for OpenAI: gpt-3.5-turbo, gpt-4, etc.)
+$config['llm_assistant_model'] = 'gpt-3.5-turbo';
+
+// Maximum tokens for response
+$config['llm_assistant_max_tokens'] = 1000;
+
+// Temperature (creativity) - 0.0 to 1.0
+$config['llm_assistant_temperature'] = 0.7;
+
+?>
