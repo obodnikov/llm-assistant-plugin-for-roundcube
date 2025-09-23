@@ -1,0 +1,22 @@
+{
+    "name": "yourname/roundcube-llm-assistant",
+    "description": "AI Assistant plugin for Roundcube webmail",
+    "type": "roundcube-plugin",
+    "keywords": ["roundcube", "plugin", "ai", "assistant", "chatgpt", "openai"],
+    "license": "GPL-3.0+",
+    "authors": [
+        {
+            "name": "Your Name",
+            "email": "your.email@example.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "roundcube/plugin-installer": ">=0.1.3"
+    },
+    "extra": {
+        "roundcube": {
+            "min-version": "1.5.0"
+        }
+    }
+}
