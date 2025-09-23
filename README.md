@@ -2,22 +2,6 @@
 
 An AI-powered assistant plugin for Roundcube webmail that integrates with OpenAI's ChatGPT and other LLM providers to help users compose, reply to, improve, and summarize emails.
 
-Key Features:
-
-AI Assistant Panel: A floating panel that appears on the compose page with various AI actions
-Multiple Actions:
-
-Help Reply: Generate responses to emails
-Help Compose: Assist with writing new emails
-Improve Text: Enhance existing draft content
-Summarize: Create summaries of email content
-
-
-Page Reading Capability: The plugin can read:
-
-Current email content from the compose editor
-Original email content from reply/forward contexts
-Both TinyMCE and plain text editors are supported
 
 ## Features
 
