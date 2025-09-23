@@ -1,0 +1,20 @@
+// File: package.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<package>
+    <name>llm_assistant</name>
+    <summary>AI Assistant for email composition</summary>
+    <description>
+        Integrates LLM (ChatGPT/OpenAI) functionality into Roundcube's compose page.
+        Provides AI assistance for composing, replying, improving, and summarizing emails.
+    </description>
+    <version>1.0.0</version>
+    <license>GPL-3.0+</license>
+    <author>
+        <name>Your Name</name>
+        <email>your.email@example.com</email>
+    </author>
+    <require>
+        <php-version>7.4</php-version>
+        <roundcube-version>1.5.0</roundcube-version>
+    </require>
+</package>
