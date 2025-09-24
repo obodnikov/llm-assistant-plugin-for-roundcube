@@ -285,7 +285,7 @@ class llm_assistant extends rcube_plugin
     }
 
     /**
-     * Get button script - Enhanced JavaScript to add the button
+     * Get button script - Fixed to prevent duplicates
      */
     private function get_button_script()
     {
@@ -293,7 +293,13 @@ class llm_assistant extends rcube_plugin
         <script type="text/javascript">
         // Wait for DOM and Roundcube to be ready
         $(document).ready(function() {
-            console.log("[LLM Assistant] DOM ready, checking page type");
+            console.log("[LLM Assistant] DOM ready, checking for existing button");
+            
+            // Check if button already exists to prevent duplicates
+            if ($("#llm-assistant-toggle").length > 0) {
+                console.log("[LLM Assistant] Button already exists, skipping insertion");
+                return;
+            }
             
             // Check if we are on compose page by looking for compose elements
             var isComposePage = false;
@@ -337,36 +343,49 @@ class llm_assistant extends rcube_plugin
                     "font-size": "13px",
                     display: "inline-block",
                     "font-weight": "bold",
-                    "box-shadow": "0 2px 4px rgba(0,0,0,0.2)"
+                    "box-shadow": "0 2px 4px rgba(0,0,0,0.2)",
+                    transition: "all 0.2s ease"
                 }
             });
             
             // Hover effect
             aiButton.hover(
-                function() { $(this).css("background", "#138496"); },
-                function() { $(this).css("background", "#17a2b8"); }
+                function() { 
+                    $(this).css({
+                        "background": "#138496",
+                        "transform": "translateY(-1px)",
+                        "box-shadow": "0 4px 8px rgba(0,0,0,0.3)"
+                    }); 
+                },
+                function() { 
+                    $(this).css({
+                        "background": "#17a2b8",
+                        "transform": "translateY(0)",
+                        "box-shadow": "0 2px 4px rgba(0,0,0,0.2)"
+                    }); 
+                }
             );
             
             var inserted = false;
             
-            // Try multiple insertion strategies
+            // Try multiple insertion strategies (only try one that works)
             var strategies = [
-                // Strategy 1: Near form buttons
+                // Strategy 1: Near send button (most common)
+                function() {
+                    var $sendBtn = $("#compose-send, .send-button, button[name=\'_send\'], .btn.send");
+                    if ($sendBtn.length > 0) {
+                        $sendBtn.first().before(aiButton);
+                        return "near send button";
+                    }
+                    return false;
+                },
+                
+                // Strategy 2: Near form buttons
                 function() {
                     var $formButtons = $(".formbuttons, .compose-buttons, .buttons");
                     if ($formButtons.length > 0) {
                         $formButtons.first().prepend(aiButton);
                         return "form buttons area";
-                    }
-                    return false;
-                },
-                
-                // Strategy 2: Near send button
-                function() {
-                    var $sendBtn = $("#compose-send, .send-button, button[name=\'_send\']");
-                    if ($sendBtn.length > 0) {
-                        $sendBtn.first().before(aiButton);
-                        return "near send button";
                     }
                     return false;
                 },
@@ -402,13 +421,12 @@ class llm_assistant extends rcube_plugin
                 }
             ];
             
-            // Try each strategy
-            for (var i = 0; i < strategies.length; i++) {
+            // Try each strategy until one works
+            for (var i = 0; i < strategies.length && !inserted; i++) {
                 var result = strategies[i]();
                 if (result) {
                     console.log("[LLM Assistant] Button inserted at: " + result);
                     inserted = true;
-                    break;
                 }
             }
             
@@ -426,13 +444,13 @@ class llm_assistant extends rcube_plugin
             
             console.log("[LLM Assistant] Button insertion complete. Button exists:", $("#llm-assistant-toggle").length > 0);
             
-            // Add a small delay to ensure the panel exists before binding events
+            // Initialize the assistant after a small delay
             setTimeout(function() {
                 if (typeof window.llm_assistant !== "undefined" && window.llm_assistant.init) {
+                    console.log("[LLM Assistant] Initializing assistant from button script");
                     window.llm_assistant.init();
                 }
-            }, 500);
+            }, 300);
         });
         </script>';
     }
-}
