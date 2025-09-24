@@ -17,6 +17,13 @@ $(document).ready(function() {
         current_action: 'reply',
         button: null,
         debug: config.debug,
+        dragData: {
+            isDragging: false,
+            startX: 0,
+            startY: 0,
+            startLeft: 0,
+            startTop: 0
+        },
         
         init: function() {
             console.log('[LLM Assistant] Initializing assistant');
@@ -26,6 +33,9 @@ $(document).ready(function() {
             
             // Then initialize the panel
             this.initPanel();
+            
+            // Initialize drag and resize functionality
+            this.initDragAndResize();
         },
         
         initButton: function() {
@@ -90,7 +100,7 @@ $(document).ready(function() {
                     "box-shadow": "0 2px 4px rgba(0,0,0,0.2)",
                     transition: "all 0.2s ease"
                 }
-            });
+        });
             
             // Add hover effects
             this.button.hover(
@@ -199,7 +209,8 @@ $(document).ready(function() {
             var self = this;
             
             // Close panel
-            $(document).off('click', '#llm-assistant-close').on('click', '#llm-assistant-close', function() {
+            $(document).off('click', '#llm-assistant-close').on('click', '#llm-assistant-close', function(e) {
+                e.stopPropagation(); // Prevent triggering drag
                 self.hidePanel();
             });
             
@@ -230,6 +241,219 @@ $(document).ready(function() {
             console.log('[LLM Assistant] Panel events bound successfully');
         },
         
+        initDragAndResize: function() {
+            var self = this;
+            console.log('[LLM Assistant] Initializing drag and resize functionality');
+            
+            // Load saved position and size
+            this.loadPanelState();
+            
+            // Make panel draggable by header
+            var header = $('.llm-assistant-header');
+            
+            header.on('mousedown', function(e) {
+                // Don't drag if clicking the close button
+                if ($(e.target).is('#llm-assistant-close') || $(e.target).closest('#llm-assistant-close').length) {
+                    return;
+                }
+                
+                e.preventDefault();
+                self.startDrag(e);
+            });
+            
+            // Global mouse events for dragging
+            $(document).on('mousemove', function(e) {
+                if (self.dragData.isDragging) {
+                    e.preventDefault();
+                    self.drag(e);
+                }
+            });
+            
+            $(document).on('mouseup', function(e) {
+                if (self.dragData.isDragging) {
+                    self.endDrag(e);
+                }
+            });
+            
+            // Prevent text selection during drag
+            $(document).on('selectstart dragstart', function(e) {
+                if (self.dragData.isDragging) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+            
+            // Save position and size when window is closed or refreshed
+            $(window).on('beforeunload', function() {
+                self.savePanelState();
+            });
+            
+            // Also save state when panel is hidden
+            this.panel.on('panelHide', function() {
+                self.savePanelState();
+            });
+            
+            // Handle window resize to keep panel in bounds
+            $(window).on('resize', function() {
+                self.keepPanelInBounds();
+            });
+        },
+        
+        startDrag: function(e) {
+            console.log('[LLM Assistant] Starting drag');
+            
+            this.dragData.isDragging = true;
+            this.dragData.startX = e.clientX;
+            this.dragData.startY = e.clientY;
+            
+            var panelPos = this.panel.offset();
+            this.dragData.startLeft = panelPos.left;
+            this.dragData.startTop = panelPos.top;
+            
+            // Add visual feedback
+            $('.llm-assistant-header').addClass('dragging');
+            this.panel.css('pointer-events', 'none'); // Prevent interference with other elements
+            $('body').css('user-select', 'none'); // Prevent text selection
+            
+            // Bring panel to front
+            this.panel.css('z-index', '10001');
+        },
+        
+        drag: function(e) {
+            if (!this.dragData.isDragging) return;
+            
+            var deltaX = e.clientX - this.dragData.startX;
+            var deltaY = e.clientY - this.dragData.startY;
+            
+            var newLeft = this.dragData.startLeft + deltaX;
+            var newTop = this.dragData.startTop + deltaY;
+            
+            // Keep panel within viewport bounds
+            var windowWidth = $(window).width();
+            var windowHeight = $(window).height();
+            var panelWidth = this.panel.outerWidth();
+            var panelHeight = this.panel.outerHeight();
+            
+            // Minimum 50px visible on each side
+            newLeft = Math.max(-panelWidth + 50, Math.min(windowWidth - 50, newLeft));
+            newTop = Math.max(0, Math.min(windowHeight - 50, newTop));
+            
+            this.panel.css({
+                left: newLeft + 'px',
+                top: newTop + 'px',
+                right: 'auto', // Remove right positioning
+                bottom: 'auto' // Remove bottom positioning
+            });
+        },
+        
+        endDrag: function(e) {
+            console.log('[LLM Assistant] Ending drag');
+            
+            this.dragData.isDragging = false;
+            
+            // Remove visual feedback
+            $('.llm-assistant-header').removeClass('dragging');
+            this.panel.css('pointer-events', 'auto');
+            $('body').css('user-select', 'auto');
+            this.panel.css('z-index', '10000');
+            
+            // Save the new position
+            this.savePanelState();
+        },
+        
+        savePanelState: function() {
+            if (!this.panel || this.panel.length === 0) return;
+            
+            try {
+                var state = {
+                    left: this.panel.css('left'),
+                    top: this.panel.css('top'),
+                    width: this.panel.width(),
+                    height: this.panel.height(),
+                    isVisible: this.panel.is(':visible')
+                };
+                
+                localStorage.setItem('llm_assistant_panel_state', JSON.stringify(state));
+                console.log('[LLM Assistant] Panel state saved');
+            } catch (e) {
+                console.warn('[LLM Assistant] Could not save panel state:', e);
+            }
+        },
+        
+        loadPanelState: function() {
+            try {
+                var savedState = localStorage.getItem('llm_assistant_panel_state');
+                if (!savedState) return;
+                
+                var state = JSON.parse(savedState);
+                
+                // Apply saved position and size
+                if (state.left && state.left !== 'auto') {
+                    this.panel.css({
+                        left: state.left,
+                        right: 'auto'
+                    });
+                }
+                
+                if (state.top && state.top !== 'auto') {
+                    this.panel.css({
+                        top: state.top,
+                        bottom: 'auto'
+                    });
+                }
+                
+                if (state.width && state.width > 200) {
+                    this.panel.width(state.width);
+                }
+                
+                if (state.height && state.height > 150) {
+                    this.panel.height(state.height);
+                }
+                
+                // Ensure panel is still within bounds
+                this.keepPanelInBounds();
+                
+                console.log('[LLM Assistant] Panel state loaded');
+            } catch (e) {
+                console.warn('[LLM Assistant] Could not load panel state:', e);
+            }
+        },
+        
+        keepPanelInBounds: function() {
+            if (!this.panel || this.panel.length === 0 || !this.panel.is(':visible')) return;
+            
+            var windowWidth = $(window).width();
+            var windowHeight = $(window).height();
+            var panelWidth = this.panel.outerWidth();
+            var panelHeight = this.panel.outerHeight();
+            
+            var currentPos = this.panel.offset();
+            var newLeft = currentPos.left;
+            var newTop = currentPos.top;
+            
+            // Adjust if panel is out of bounds
+            if (newLeft + panelWidth > windowWidth) {
+                newLeft = windowWidth - panelWidth - 20;
+            }
+            if (newLeft < 0) {
+                newLeft = 20;
+            }
+            if (newTop + panelHeight > windowHeight) {
+                newTop = windowHeight - panelHeight - 20;
+            }
+            if (newTop < 0) {
+                newTop = 20;
+            }
+            
+            // Only update if position changed
+            if (newLeft !== currentPos.left || newTop !== currentPos.top) {
+                this.panel.css({
+                    left: newLeft + 'px',
+                    top: newTop + 'px'
+                });
+            }
+        },
+        
         togglePanel: function() {
             if (!this.panel || this.panel.length === 0) {
                 console.error('[LLM Assistant] Cannot toggle panel - panel not found');
@@ -246,12 +470,14 @@ $(document).ready(function() {
         showPanel: function() {
             console.log('[LLM Assistant] Showing panel');
             this.panel.show();
+            this.keepPanelInBounds(); // Ensure it's in a good position
             $('#llm-prompt').focus();
         },
         
         hidePanel: function() {
             console.log('[LLM Assistant] Hiding panel');
             this.panel.hide();
+            this.panel.trigger('panelHide'); // Custom event for saving state
         },
         
         setAction: function(action) {
