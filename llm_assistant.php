@@ -46,18 +46,22 @@ class llm_assistant extends rcube_plugin
         rcube::write_log('console', '[LLM Assistant] Startup hook called - task: ' . $this->rc->task . ', action: ' . $this->rc->action);
         
         // Check if we're on a compose page
-        if ($this->rc->task == 'mail' && ($this->rc->action == 'compose' || $this->rc->action == 'show')) {
+        if ($this->rc->task == 'mail' && ($this->rc->action == 'compose' || empty($this->rc->action))) {
             rcube::write_log('console', '[LLM Assistant] On compose-related page, adding assets');
             
-            // Add CSS and JavaScript
-            $this->include_stylesheet($this->local_skin_path() . '/llm_assistant.css');
-            $this->include_script('llm_assistant.js');
-            
-            // Add assistant panel and button HTML
-            $this->rc->output->add_footer($this->get_assistant_panel());
-            $this->rc->output->add_footer($this->get_button_script());
-            
-            rcube::write_log('console', '[LLM Assistant] Assets added via startup hook');
+            // Add CSS and JavaScript (only once)
+            static $assets_added = false;
+            if (!$assets_added) {
+                $this->include_stylesheet($this->local_skin_path() . '/llm_assistant.css');
+                $this->include_script('llm_assistant.js');
+                
+                // Add assistant panel HTML
+                $this->rc->output->add_footer($this->get_assistant_panel());
+                $this->rc->output->add_footer($this->get_button_script());
+                
+                $assets_added = true;
+                rcube::write_log('console', '[LLM Assistant] Assets added via startup hook');
+            }
         }
         
         return $args;
