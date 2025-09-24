@@ -1,49 +1,74 @@
-<!-- JavaScript file: llm_assistant.js -->
-<script>
+console.log('[LLM Assistant] JavaScript file loaded');
+
 $(document).ready(function() {
-    var llm_assistant = {
+    console.log('[LLM Assistant] DOM ready, initializing...');
+    
+    window.llm_assistant = {
         panel: null,
         current_action: 'reply',
+        debug: true,
         
         init: function() {
+            console.log('[LLM Assistant] Initializing assistant');
             this.panel = $('#llm-assistant-panel');
+            
+            if (this.panel.length === 0) {
+                console.error('[LLM Assistant] Panel not found!');
+                return;
+            }
+            
             this.bind_events();
+            console.log('[LLM Assistant] Assistant initialized successfully');
+        },
+        
+        log: function(message, data) {
+            if (this.debug && console) {
+                console.log('[LLM Assistant] ' + message, data || '');
+            }
+        },
+        
+        error: function(message, data) {
+            if (console) {
+                console.error('[LLM Assistant ERROR] ' + message, data || '');
+            }
         },
         
         bind_events: function() {
             var self = this;
             
             // Toggle assistant panel
-            $('#llm-assistant-toggle').click(function(e) {
+            $(document).on('click', '#llm-assistant-toggle', function(e) {
                 e.preventDefault();
                 self.toggle_panel();
             });
             
             // Close panel
-            $('#llm-assistant-close').click(function() {
+            $(document).on('click', '#llm-assistant-close', function() {
                 self.hide_panel();
             });
             
             // Action buttons
-            $('.llm-action-btn').click(function() {
+            $(document).on('click', '.llm-action-btn', function() {
                 self.set_action($(this).data('action'));
                 $(this).addClass('active').siblings().removeClass('active');
             });
             
             // Generate response
-            $('#llm-generate').click(function() {
+            $(document).on('click', '#llm-generate', function() {
                 self.generate_response();
             });
             
             // Insert response
-            $('#llm-insert').click(function() {
+            $(document).on('click', '#llm-insert', function() {
                 self.insert_response();
             });
             
             // Handle response from server
-            rcmail.addEventListener('plugin.llm_assistant_response', function(data) {
-                self.handle_response(data);
-            });
+            if (typeof rcmail !== 'undefined') {
+                rcmail.addEventListener('plugin.llm_assistant_response', function(data) {
+                    self.handle_response(data);
+                });
+            }
         },
         
         toggle_panel: function() {
@@ -91,15 +116,24 @@ $(document).ready(function() {
             // Get content from compose editor
             var content = '';
             
-            if (window.rcmail && rcmail.editor) {
-                if (rcmail.editor.editor) {
-                    // TinyMCE editor
-                    content = rcmail.editor.editor.getContent({format: 'text'});
+            try {
+                if (window.rcmail && rcmail.editor) {
+                    if (rcmail.editor.editor) {
+                        // TinyMCE editor
+                        content = rcmail.editor.editor.getContent({format: 'text'});
+                    } else {
+                        // Plain text editor
+                        content = rcmail.editor.get_content();
+                    }
                 } else {
-                    // Plain text editor
-                    content = rcmail.editor.get_content();
+                    // Fallback to textarea
+                    var textarea = $('textarea[name="_message"]');
+                    if (textarea.length) {
+                        content = textarea.val();
+                    }
                 }
-            } else {
+            } catch (e) {
+                this.error('Error getting email content', e);
                 // Fallback to textarea
                 var textarea = $('textarea[name="_message"]');
                 if (textarea.length) {
@@ -134,10 +168,18 @@ $(document).ready(function() {
         },
         
         generate_response: function() {
+            var self = this;
             var prompt = $('#llm-prompt').val().trim();
             var context = $('#llm-context').val().trim();
             
+            self.log('Generate response started', {
+                prompt_length: prompt.length,
+                context_length: context.length,
+                action: this.current_action
+            });
+            
             if (!prompt) {
+                self.error('Empty prompt');
                 alert('Please enter a prompt');
                 return;
             }
@@ -151,16 +193,28 @@ $(document).ready(function() {
                 email_content = this.get_email_content();
             }
             
-            rcmail.http_post('plugin.llm_assistant.generate', {
-                prompt: prompt,
-                context: context,
-                email_content: email_content,
-                action_type: this.current_action
+            self.log('Email content extracted', {
+                email_content_length: email_content.length
             });
+            
+            // Make the AJAX request
+            if (typeof rcmail !== 'undefined') {
+                rcmail.http_post('plugin.llm_assistant.generate', {
+                    prompt: prompt,
+                    context: context,
+                    email_content: email_content,
+                    action_type: this.current_action
+                });
+            } else {
+                this.error('Roundcube not available');
+                this.hide_loading();
+            }
         },
         
         handle_response: function(data) {
             this.hide_loading();
+            
+            this.log('Response received', data);
             
             if (data.success) {
                 $('#llm-response-content').text(data.content);
@@ -179,18 +233,30 @@ $(document).ready(function() {
             
             if (!response_content) return;
             
+            this.log('Inserting response', {length: response_content.length});
+            
             // Insert into compose editor
-            if (window.rcmail && rcmail.editor) {
-                if (rcmail.editor.editor) {
-                    // TinyMCE editor
-                    rcmail.editor.editor.insertContent(response_content);
+            try {
+                if (window.rcmail && rcmail.editor) {
+                    if (rcmail.editor.editor) {
+                        // TinyMCE editor
+                        rcmail.editor.editor.insertContent(response_content);
+                    } else {
+                        // Plain text editor
+                        var current_content = rcmail.editor.get_content();
+                        rcmail.editor.set_content(current_content + '\n\n' + response_content);
+                    }
                 } else {
-                    // Plain text editor
-                    var current_content = rcmail.editor.get_content();
-                    rcmail.editor.set_content(current_content + '\n\n' + response_content);
+                    // Fallback to textarea
+                    var textarea = $('textarea[name="_message"]');
+                    if (textarea.length) {
+                        var current_content = textarea.val();
+                        textarea.val(current_content + '\n\n' + response_content);
+                    }
                 }
-            } else {
-                // Fallback to textarea
+            } catch (e) {
+                this.error('Error inserting response', e);
+                // Fallback method
                 var textarea = $('textarea[name="_message"]');
                 if (textarea.length) {
                     var current_content = textarea.val();
@@ -215,6 +281,19 @@ $(document).ready(function() {
         }
     };
     
-    llm_assistant.init();
+    // Initialize immediately if panel exists, otherwise wait for button script
+    if ($('#llm-assistant-panel').length > 0) {
+        window.llm_assistant.init();
+    }
+    
+    // Global error handler for uncaught JavaScript errors
+    window.addEventListener('error', function(e) {
+        console.error('[LLM Assistant] Uncaught error:', {
+            message: e.message,
+            source: e.filename,
+            line: e.lineno,
+            column: e.colno,
+            error: e.error
+        });
+    });
 });
-</script>
