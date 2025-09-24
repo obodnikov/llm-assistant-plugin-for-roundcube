@@ -1,14 +1,7 @@
 <?php
 
 /**
- * LLM Assistant Plugin for Roundcube
- * 
- * Integrates AI assistant functionality into the compose page
- * Supports OpenAI GPT and other LLM providers
- *
- * @version 1.0
- * @author Your Name
- * @license GPL-3.0+
+ * Improved LLM Assistant Plugin - Clean Separation of Concerns
  */
 class llm_assistant extends rcube_plugin
 {
@@ -19,110 +12,62 @@ class llm_assistant extends rcube_plugin
     {
         $this->rc = rcube::get_instance();
         
-        // Debug logging
         rcube::write_log('console', '[LLM Assistant] Plugin init() called');
-        
-        // Load configuration
         $this->load_config();
         
-        // Register hooks for all tasks initially
         $this->add_hook('startup', array($this, 'startup'));
         $this->add_hook('render_page', array($this, 'render_page'));
-        
-        // Register actions
         $this->register_action('plugin.llm_assistant.generate', array($this, 'generate_response'));
-        
-        // Add localization
         $this->add_texts('localization/', true);
         
         rcube::write_log('console', '[LLM Assistant] Plugin initialization complete');
     }
 
-    /**
-     * Startup hook - called on every request
-     */
     public function startup($args)
     {
-        rcube::write_log('console', '[LLM Assistant] Startup hook called - task: ' . $this->rc->task . ', action: ' . $this->rc->action);
-        
-        // Check if we're on a compose page
         if ($this->rc->task == 'mail' && ($this->rc->action == 'compose' || empty($this->rc->action))) {
-            rcube::write_log('console', '[LLM Assistant] On compose-related page, adding assets');
-            
-            // Add CSS and JavaScript (only once)
-            static $assets_added = false;
-            if (!$assets_added) {
+            if (!isset($GLOBALS['llm_assistant_assets_loaded'])) {
+                // Add CSS and JavaScript files
                 $this->include_stylesheet($this->local_skin_path() . '/llm_assistant.css');
                 $this->include_script('llm_assistant.js');
                 
-                // Add assistant panel HTML
+                // Add only the HTML panel - no JavaScript in PHP
                 $this->rc->output->add_footer($this->get_assistant_panel());
-                $this->rc->output->add_footer($this->get_button_script());
                 
-                $assets_added = true;
+                // Pass configuration to JavaScript via HTML data attributes or global JS variable
+                $this->rc->output->add_footer($this->get_config_script());
+                
+                $GLOBALS['llm_assistant_assets_loaded'] = true;
                 rcube::write_log('console', '[LLM Assistant] Assets added via startup hook');
             }
         }
-        
         return $args;
     }
 
-    /**
-     * Hook to modify page rendering
-     */
     public function render_page($args)
     {
-        rcube::write_log('console', '[LLM Assistant] render_page called with template: ' . $args['template']);
-        
-        if ($args['template'] == 'compose') {
-            rcube::write_log('console', '[LLM Assistant] Adding assets to compose page');
-            
-            // Add CSS and JavaScript
+        if ($args['template'] == 'compose' && !isset($GLOBALS['llm_assistant_assets_loaded'])) {
             $this->include_stylesheet($this->local_skin_path() . '/llm_assistant.css');
             $this->include_script('llm_assistant.js');
-            
-            // Add assistant panel HTML to footer
-            $panel_html = $this->get_assistant_panel();
-            $this->rc->output->add_footer($panel_html);
-            
-            // IMPORTANT: Also add the button HTML directly to the page
-            $button_script = $this->get_button_script();
-            $this->rc->output->add_footer($button_script);
-            
-            rcube::write_log('console', '[LLM Assistant] Assets and panel added');
+            $this->rc->output->add_footer($this->get_assistant_panel());
+            $this->rc->output->add_footer($this->get_config_script());
+            $GLOBALS['llm_assistant_assets_loaded'] = true;
         }
-        
         return $args;
     }
 
     /**
-     * Hook to modify compose form - Alternative approach
-     */
-    public function compose_form($args)
-    {
-        rcube::write_log('console', '[LLM Assistant] compose_form hook called');
-        
-        // We'll add the button via JavaScript instead of modifying the form HTML
-        // This is more reliable across different Roundcube versions and skins
-        
-        return $args;
-    }
-
-    /**
-     * Generate AI response
+     * Generate AI response - same as before
      */
     public function generate_response()
     {
         try {
-            rcube::write_log('console', '[LLM Assistant] Generate response called');
-            
             $prompt = rcube_utils::get_input_value('prompt', rcube_utils::INPUT_POST);
             $context = rcube_utils::get_input_value('context', rcube_utils::INPUT_POST);
             $email_content = rcube_utils::get_input_value('email_content', rcube_utils::INPUT_POST);
             $action_type = rcube_utils::get_input_value('action_type', rcube_utils::INPUT_POST, 'reply');
 
             if (empty($prompt)) {
-                rcube::write_log('console', '[LLM Assistant] Empty prompt provided');
                 $this->rc->output->command('plugin.llm_assistant_response', array(
                     'success' => false,
                     'message' => 'Please enter a prompt'
@@ -139,7 +84,6 @@ class llm_assistant extends rcube_plugin
             
         } catch (Exception $e) {
             rcube::write_log('errors', '[LLM Assistant] Exception: ' . $e->getMessage());
-            
             $this->rc->output->command('plugin.llm_assistant_response', array(
                 'success' => false,
                 'message' => 'Error: ' . $e->getMessage()
@@ -147,9 +91,8 @@ class llm_assistant extends rcube_plugin
         }
     }
 
-    /**
-     * Call LLM API (OpenAI or other provider)
-     */
+    // ... (keep existing call_llm_api and call_openai_api methods)
+    
     private function call_llm_api($prompt, $context, $email_content, $action_type)
     {
         $api_provider = $this->rc->config->get('llm_assistant_provider', 'openai');
@@ -160,7 +103,6 @@ class llm_assistant extends rcube_plugin
             throw new Exception('API key not configured. Please check plugin configuration.');
         }
 
-        // Prepare the system message based on action type
         $system_messages = array(
             'reply' => 'You are an email assistant. Help compose professional email replies based on the provided context and original email content.',
             'compose' => 'You are an email assistant. Help compose professional emails based on the user\'s requirements.',
@@ -173,7 +115,6 @@ class llm_assistant extends rcube_plugin
             $system_messages[$action_type] : 
             $system_messages['reply'];
 
-        // Build the message array
         $messages = array(
             array('role' => 'system', 'content' => $system_message)
         );
@@ -195,9 +136,6 @@ class llm_assistant extends rcube_plugin
         }
     }
 
-    /**
-     * Call OpenAI API
-     */
     private function call_openai_api($messages, $model, $api_key)
     {
         $data = array(
@@ -253,7 +191,7 @@ class llm_assistant extends rcube_plugin
     }
 
     /**
-     * Get assistant panel HTML - Fixed version with visible buttons
+     * Clean HTML panel - no JavaScript mixed in
      */
     private function get_assistant_panel()
     {
@@ -323,173 +261,18 @@ class llm_assistant extends rcube_plugin
     }
 
     /**
-     * Get button script - Fixed to prevent duplicates
+     * Pass configuration to JavaScript - minimal and clean
      */
-    private function get_button_script()
+    private function get_config_script()
     {
-        return '
-        <script type="text/javascript">
-        // Wait for DOM and Roundcube to be ready
-        $(document).ready(function() {
-            console.log("[LLM Assistant] DOM ready, checking for existing button");
-            
-            // Check if button already exists to prevent duplicates
-            if ($("#llm-assistant-toggle").length > 0) {
-                console.log("[LLM Assistant] Button already exists, skipping insertion");
-                return;
+        return '<script type="text/javascript">
+        window.llm_assistant_config = {
+            debug: true,
+            labels: {
+                "toggle_assistant": "' . $this->gettext('toggle_assistant') . '",
+                "ai_assistant": "' . $this->gettext('ai_assistant') . '"
             }
-            
-            // Check if we are on compose page by looking for compose elements
-            var isComposePage = false;
-            var composeIndicators = [
-                "#compose-subject",
-                "input[name=\'_subject\']", 
-                "#composebody",
-                "textarea[name=\'_message\']",
-                ".compose-form",
-                "#composeform"
-            ];
-            
-            for (var i = 0; i < composeIndicators.length; i++) {
-                if ($(composeIndicators[i]).length > 0) {
-                    isComposePage = true;
-                    console.log("[LLM Assistant] Compose page detected via: " + composeIndicators[i]);
-                    break;
-                }
-            }
-            
-            if (!isComposePage) {
-                console.log("[LLM Assistant] Not a compose page, skipping button insertion");
-                return;
-            }
-            
-            console.log("[LLM Assistant] Adding AI Assistant button");
-            
-            // Create the AI Assistant button
-            var aiButton = $("<a>", {
-                id: "llm-assistant-toggle",
-                href: "#",
-                title: "Toggle AI Assistant",
-                text: "🤖 AI Assistant",
-                css: {
-                    background: "#17a2b8",
-                    color: "white",
-                    "margin": "0 5px 5px 0",
-                    padding: "8px 12px",
-                    "border-radius": "4px",
-                    "text-decoration": "none",
-                    "font-size": "13px",
-                    display: "inline-block",
-                    "font-weight": "bold",
-                    "box-shadow": "0 2px 4px rgba(0,0,0,0.2)",
-                    transition: "all 0.2s ease"
-                }
-            });
-            
-            // Hover effect
-            aiButton.hover(
-                function() { 
-                    $(this).css({
-                        "background": "#138496",
-                        "transform": "translateY(-1px)",
-                        "box-shadow": "0 4px 8px rgba(0,0,0,0.3)"
-                    }); 
-                },
-                function() { 
-                    $(this).css({
-                        "background": "#17a2b8",
-                        "transform": "translateY(0)",
-                        "box-shadow": "0 2px 4px rgba(0,0,0,0.2)"
-                    }); 
-                }
-            );
-            
-            var inserted = false;
-            
-            // Try multiple insertion strategies (only try one that works)
-            var strategies = [
-                // Strategy 1: Near send button (most common)
-                function() {
-                    var $sendBtn = $("#compose-send, .send-button, button[name=\'_send\'], .btn.send");
-                    if ($sendBtn.length > 0) {
-                        $sendBtn.first().before(aiButton);
-                        return "near send button";
-                    }
-                    return false;
-                },
-                
-                // Strategy 2: Near form buttons
-                function() {
-                    var $formButtons = $(".formbuttons, .compose-buttons, .buttons");
-                    if ($formButtons.length > 0) {
-                        $formButtons.first().prepend(aiButton);
-                        return "form buttons area";
-                    }
-                    return false;
-                },
-                
-                // Strategy 3: In toolbar area
-                function() {
-                    var $toolbar = $("#compose-toolbar, .toolbar, #composetoolbar");
-                    if ($toolbar.length > 0) {
-                        $toolbar.first().append(aiButton);
-                        return "toolbar";
-                    }
-                    return false;
-                },
-                
-                // Strategy 4: After subject field
-                function() {
-                    var $subject = $("#compose-subject, input[name=\'_subject\']");
-                    if ($subject.length > 0) {
-                        $subject.first().parent().after($("<div>").css("margin", "10px 0").append(aiButton));
-                        return "after subject field";
-                    }
-                    return false;
-                },
-                
-                // Strategy 5: At the beginning of compose form
-                function() {
-                    var $composeForm = $("#composeform, .compose-form, #compose-div");
-                    if ($composeForm.length > 0) {
-                        $composeForm.first().prepend($("<div>").css({"text-align": "right", "margin": "10px 0"}).append(aiButton));
-                        return "top of compose form";
-                    }
-                    return false;
-                }
-            ];
-            
-            // Try each strategy until one works
-            for (var i = 0; i < strategies.length && !inserted; i++) {
-                var result = strategies[i]();
-                if (result) {
-                    console.log("[LLM Assistant] Button inserted at: " + result);
-                    inserted = true;
-                }
-            }
-            
-            if (!inserted) {
-                // Final fallback: append to body with fixed positioning
-                aiButton.css({
-                    position: "fixed",
-                    top: "10px",
-                    right: "10px",
-                    "z-index": "9999"
-                });
-                $("body").append(aiButton);
-                console.log("[LLM Assistant] Button inserted as fixed element (fallback)");
-            }
-            
-            console.log("[LLM Assistant] Button insertion complete. Button exists:", $("#llm-assistant-toggle").length > 0);
-            
-            // Initialize the assistant after a small delay
-            setTimeout(function() {
-                if (typeof window.llm_assistant !== "undefined" && window.llm_assistant.init) {
-                    console.log("[LLM Assistant] Initializing assistant from button script");
-                    window.llm_assistant.init();
-                }
-            }, 300);
-        });
+        };
         </script>';
     }
 }
