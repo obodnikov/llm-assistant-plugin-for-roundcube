@@ -1,18 +1,24 @@
-// File: skins/elastic/llm_assistant.css
+/* File: skins/elastic/llm_assistant.css */
 #llm-assistant-panel {
     position: fixed;
     top: 50px;
     right: 20px;
     width: 400px;
+    min-width: 300px;
+    max-width: 800px;
     max-height: 600px;
+    min-height: 200px;
     background: #fff;
     border: 1px solid #ddd;
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     z-index: 10000;
     font-family: Arial, sans-serif;
+    resize: both;
+    overflow: auto;
 }
 
+/* Make the entire header draggable */
 .llm-assistant-header {
     padding: 12px 15px;
     background: #f8f9fa;
@@ -21,6 +27,19 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    cursor: move;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+.llm-assistant-header:hover {
+    background: #e9ecef;
+}
+
+.llm-assistant-header.dragging {
+    background: #dee2e6;
 }
 
 .llm-assistant-header h3 {
@@ -28,6 +47,25 @@
     font-size: 16px;
     font-weight: 600;
     color: #333;
+    pointer-events: none; /* Prevent text selection during drag */
+}
+
+/* Add a drag handle indicator */
+.llm-assistant-header::before {
+    content: "⋮⋮";
+    position: absolute;
+    left: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+    font-size: 14px;
+    letter-spacing: -2px;
+    opacity: 0.6;
+}
+
+.llm-assistant-header:hover::before {
+    opacity: 1;
+    color: #666;
 }
 
 #llm-assistant-close {
@@ -42,6 +80,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 1; /* Ensure close button is clickable during drag */
 }
 
 #llm-assistant-close:hover {
@@ -52,6 +91,8 @@
 
 .llm-assistant-content {
     padding: 15px;
+    height: calc(100% - 60px); /* Account for header height */
+    overflow-y: auto;
 }
 
 .llm-assistant-actions {
@@ -69,6 +110,7 @@
     cursor: pointer;
     font-size: 12px;
     transition: all 0.2s;
+    white-space: nowrap;
 }
 
 .llm-action-btn:hover {
@@ -91,6 +133,7 @@
     font-family: inherit;
     font-size: 13px;
     resize: vertical;
+    box-sizing: border-box;
 }
 
 .llm-assistant-form textarea:focus {
@@ -103,6 +146,7 @@
     display: flex;
     gap: 8px;
     margin-bottom: 15px;
+    flex-wrap: wrap;
 }
 
 .llm-assistant-buttons button {
@@ -112,6 +156,7 @@
     cursor: pointer;
     font-size: 13px;
     transition: all 0.2s;
+    white-space: nowrap;
 }
 
 .btn-primary {
@@ -142,6 +187,7 @@
     border-radius: 4px;
     padding: 12px;
     background: #f8f9fa;
+    margin-bottom: 10px;
 }
 
 #llm-response h4 {
@@ -158,6 +204,10 @@
     white-space: pre-wrap;
     max-height: 200px;
     overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 3px;
+    padding: 8px;
+    background: white;
 }
 
 #llm-loading {
@@ -165,6 +215,25 @@
     padding: 20px;
     color: #6c757d;
     font-style: italic;
+    background: #f1f3f4;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.llm-loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 .llm-error {
@@ -174,6 +243,7 @@
     border-radius: 4px;
     border: 1px solid #f5c6cb;
     font-size: 13px;
+    margin-bottom: 10px;
 }
 
 #llm-assistant-toggle {
@@ -193,12 +263,36 @@
     text-decoration: none;
 }
 
-/* Mobile responsiveness */
+/* Resize handle styling */
+#llm-assistant-panel::-webkit-resizer {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M12 12H0V0h12v12zM9 3l-6 6h6V3z' fill='%23666'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+/* Custom resize handle for better visibility */
+.llm-assistant-resize-handle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    cursor: se-resize;
+    background: linear-gradient(-45deg, transparent 30%, #999 30%, #999 40%, transparent 40%, transparent 60%, #999 60%, #999 70%, transparent 70%);
+    opacity: 0.6;
+}
+
+.llm-assistant-resize-handle:hover {
+    opacity: 1;
+}
+
+/* Responsive design adjustments */
 @media (max-width: 768px) {
     #llm-assistant-panel {
         right: 10px;
         left: 10px;
         width: auto;
+        min-width: 280px;
         top: 10px;
     }
     
@@ -208,5 +302,50 @@
     
     .llm-action-btn {
         text-align: center;
+    }
+    
+    .llm-assistant-buttons {
+        flex-direction: column;
+    }
+}
+
+/* Dark mode support (if applicable) */
+@media (prefers-color-scheme: dark) {
+    #llm-assistant-panel {
+        background: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    .llm-assistant-header {
+        background: #4a5568;
+        border-bottom-color: #2d3748;
+    }
+    
+    .llm-assistant-header:hover {
+        background: #2d3748;
+    }
+    
+    .llm-action-btn {
+        background: #4a5568;
+        border-color: #2d3748;
+        color: #e2e8f0;
+    }
+    
+    .llm-assistant-form textarea {
+        background: #4a5568;
+        border-color: #2d3748;
+        color: #e2e8f0;
+    }
+    
+    #llm-response {
+        background: #4a5568;
+        border-color: #2d3748;
+    }
+    
+    #llm-response-content {
+        background: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
     }
 }
