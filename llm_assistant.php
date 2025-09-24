@@ -253,7 +253,7 @@ class llm_assistant extends rcube_plugin
     }
 
     /**
-     * Get assistant panel HTML
+     * Get assistant panel HTML - Fixed version with visible buttons
      */
     private function get_assistant_panel()
     {
@@ -265,27 +265,61 @@ class llm_assistant extends rcube_plugin
             </div>
             <div class="llm-assistant-content" style="padding: 15px;">
                 <div class="llm-assistant-actions" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px;">
-                    <button type="button" class="llm-action-btn" data-action="reply" style="padding: 6px 12px; border: 1px solid #ddd; background: #f8f9fa; border-radius: 4px; cursor: pointer; font-size: 12px;">Help Reply</button>
-                    <button type="button" class="llm-action-btn" data-action="compose" style="padding: 6px 12px; border: 1px solid #ddd; background: #f8f9fa; border-radius: 4px; cursor: pointer; font-size: 12px;">Help Compose</button>
-                    <button type="button" class="llm-action-btn" data-action="improve" style="padding: 6px 12px; border: 1px solid #ddd; background: #f8f9fa; border-radius: 4px; cursor: pointer; font-size: 12px;">Improve Text</button>
-                    <button type="button" class="llm-action-btn" data-action="summarize" style="padding: 6px 12px; border: 1px solid #ddd; background: #f8f9fa; border-radius: 4px; cursor: pointer; font-size: 12px;">Summarize</button>
+                    <button type="button" class="llm-action-btn" data-action="reply" style="padding: 6px 12px; border: 1px solid #007bff; background: #007bff; color: white; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">Help Reply</button>
+                    <button type="button" class="llm-action-btn" data-action="compose" style="padding: 6px 12px; border: 1px solid #28a745; background: #28a745; color: white; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">Help Compose</button>
+                    <button type="button" class="llm-action-btn" data-action="improve" style="padding: 6px 12px; border: 1px solid #ffc107; background: #ffc107; color: #212529; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">Improve Text</button>
+                    <button type="button" class="llm-action-btn" data-action="summarize" style="padding: 6px 12px; border: 1px solid #6c757d; background: #6c757d; color: white; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">Summarize</button>
                 </div>
                 <div class="llm-assistant-form">
-                    <textarea id="llm-prompt" placeholder="Enter your request..." rows="3" style="width: 100%; border: 1px solid #ddd; border-radius: 4px; padding: 8px; margin-bottom: 10px; font-family: inherit; font-size: 13px; box-sizing: border-box;"></textarea>
-                    <textarea id="llm-context" placeholder="Additional context (optional)..." rows="2" style="width: 100%; border: 1px solid #ddd; border-radius: 4px; padding: 8px; margin-bottom: 10px; font-family: inherit; font-size: 13px; box-sizing: border-box;"></textarea>
+                    <textarea id="llm-prompt" placeholder="Enter your request..." rows="3" style="width: 100%; border: 1px solid #ddd; border-radius: 4px; padding: 8px; margin-bottom: 10px; font-family: inherit; font-size: 13px; box-sizing: border-box; resize: vertical;"></textarea>
+                    <textarea id="llm-context" placeholder="Additional context (optional)..." rows="2" style="width: 100%; border: 1px solid #ddd; border-radius: 4px; padding: 8px; margin-bottom: 10px; font-family: inherit; font-size: 13px; box-sizing: border-box; resize: vertical;"></textarea>
                     <div class="llm-assistant-buttons" style="display: flex; gap: 8px; margin-bottom: 15px;">
-                        <button type="button" id="llm-generate" style="padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; background: #007bff; color: white;">Generate</button>
-                        <button type="button" id="llm-insert" style="padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; background: #6c757d; color: white; display: none;">Insert Response</button>
+                        <button type="button" id="llm-generate" style="padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; background: #007bff; color: white; font-weight: bold;">Generate</button>
+                        <button type="button" id="llm-insert" style="padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; background: #28a745; color: white; display: none; font-weight: bold;">Insert Response</button>
                     </div>
                 </div>
-                <div id="llm-response" style="display: none; border: 1px solid #e9ecef; border-radius: 4px; padding: 12px; background: #f8f9fa;">
+                <div id="llm-response" style="display: none; border: 1px solid #e9ecef; border-radius: 4px; padding: 12px; background: #f8f9fa; margin-bottom: 10px;">
                     <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: #495057;">Generated Response:</h4>
-                    <div id="llm-response-content" style="font-size: 13px; line-height: 1.5; color: #333; white-space: pre-wrap; max-height: 200px; overflow-y: auto;"></div>
+                    <div id="llm-response-content" style="font-size: 13px; line-height: 1.5; color: #333; white-space: pre-wrap; max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 3px; padding: 8px; background: white;"></div>
                 </div>
-                <div id="llm-loading" style="display: none; text-align: center; padding: 20px; color: #6c757d; font-style: italic;">Generating response...</div>
-                <div id="llm-error" style="display: none; background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; border: 1px solid #f5c6cb; font-size: 13px;"></div>
+                <div id="llm-loading" style="display: none; text-align: center; padding: 20px; color: #6c757d; font-style: italic; background: #f1f3f4; border-radius: 4px; margin-bottom: 10px;">
+                    <div style="display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 10px;"></div>
+                    Generating response...
+                </div>
+                <div id="llm-error" style="display: none; background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; border: 1px solid #f5c6cb; font-size: 13px; margin-bottom: 10px;"></div>
             </div>
-        </div>';
+        </div>
+        
+        <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .llm-action-btn:hover {
+            opacity: 0.8;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .llm-action-btn.active {
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.25);
+            transform: translateY(-2px);
+        }
+        
+        #llm-generate:hover:not(:disabled) {
+            background: #0056b3;
+        }
+        
+        #llm-insert:hover {
+            background: #218838;
+        }
+        
+        #llm-assistant-close:hover {
+            background: #e9ecef;
+            border-radius: 3px;
+        }
+        </style>';
     }
 
     /**
