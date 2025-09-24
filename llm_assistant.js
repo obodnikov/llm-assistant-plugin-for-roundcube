@@ -369,7 +369,9 @@ $(document).ready(function() {
             console.log('[LLM Assistant] Response received:', data.success);
             
             if (data.success) {
-                $('#llm-response-content').text(data.content);
+                // Format the response for better display
+                var formatted_content = this.formatResponseForDisplay(data.content);
+                $('#llm-response-content').html(formatted_content);
                 $('#llm-response').show();
                 $('#llm-insert').show();
                 $('#llm-error').hide();
@@ -380,29 +382,42 @@ $(document).ready(function() {
             }
         },
         
+        formatResponseForDisplay: function(content) {
+            // Format content for display in the response panel
+            return content
+                .replace(/\n\n/g, '<br><br>')
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>');
+        },
+        
         insertResponse: function() {
-            var response_content = $('#llm-response-content').text();
+            var response_content = $('#llm-response-content').text(); // Get text content, not HTML
             
             if (!response_content) return;
             
-            console.log('[LLM Assistant] Inserting response');
+            console.log('[LLM Assistant] Inserting structured response');
+            
+            // Structure the text for better readability
+            var structured_content = this.structureText(response_content);
             
             try {
                 if (window.rcmail && rcmail.editor) {
                     if (rcmail.editor.editor) {
-                        // TinyMCE editor
-                        rcmail.editor.editor.insertContent(response_content);
+                        // TinyMCE editor - insert as HTML
+                        var html_content = this.textToHtml(structured_content);
+                        rcmail.editor.editor.insertContent(html_content);
                     } else {
                         // Plain text editor
                         var current_content = rcmail.editor.get_content();
-                        rcmail.editor.set_content(current_content + '\n\n' + response_content);
+                        rcmail.editor.set_content(current_content + '\n\n' + structured_content);
                     }
                 } else {
                     // Fallback to textarea
                     var textarea = $('textarea[name="_message"]');
                     if (textarea.length) {
                         var current_content = textarea.val();
-                        textarea.val(current_content + '\n\n' + response_content);
+                        textarea.val(current_content + '\n\n' + structured_content);
                     }
                 }
             } catch (e) {
@@ -411,11 +426,56 @@ $(document).ready(function() {
                 var textarea = $('textarea[name="_message"]');
                 if (textarea.length) {
                     var current_content = textarea.val();
-                    textarea.val(current_content + '\n\n' + response_content);
+                    textarea.val(current_content + '\n\n' + structured_content);
                 }
             }
             
             this.hidePanel();
+        },
+        
+        structureText: function(text) {
+            // Clean up the text and add proper structure
+            var structured = text
+                // Remove excessive whitespace
+                .replace(/\s+/g, ' ')
+                .trim()
+                // Ensure proper spacing after punctuation
+                .replace(/([.!?])([A-Z])/g, '$1 $2')
+                // Add line breaks before common sentence starters and transitions
+                .replace(/([.!?])\s+(However,|Moreover,|Furthermore,|Additionally,|Therefore,|Consequently,|In conclusion,|Finally,|Best regards,|Sincerely,|Kind regards,|Thank you)/gi, '$1\n\n$2')
+                // Add line breaks before "Dear" if it appears
+                .replace(/(^|\s)(Dear\s+[^,]+,)/gi, '\n\n$2')
+                // Add line breaks before "Subject:" if it appears
+                .replace(/(^|\s)(Subject:\s*)/gi, '\n\n$2')
+                // Handle email signatures and closings
+                .replace(/([.!?])\s+(Best\s+regards|Sincerely|Kind\s+regards|Thank\s+you|Yours\s+truly)/gi, '$1\n\n$2')
+                // Add paragraph breaks for long sentences (more than 100 characters ending with period)
+                .replace(/([.!?])\s+([A-Z][^.!?]{100,})/g, '$1\n\n$2')
+                // Clean up multiple line breaks
+                .replace(/\n{3,}/g, '\n\n')
+                .trim();
+            
+            return structured;
+        },
+        
+        textToHtml: function(text) {
+            // Convert structured text to HTML for rich text editor
+            var html = text
+                // Escape HTML characters
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                // Convert line breaks to HTML
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+            
+            // Wrap in paragraphs
+            html = '<p>' + html + '</p>';
+            
+            // Clean up empty paragraphs
+            html = html.replace(/<p><\/p>/g, '');
+            
+            return html;
         },
         
         showLoading: function() {
