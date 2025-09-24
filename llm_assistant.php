@@ -492,3 +492,4 @@ class llm_assistant extends rcube_plugin
         });
         </script>';
     }
+}
