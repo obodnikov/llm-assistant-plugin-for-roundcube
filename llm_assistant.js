@@ -696,51 +696,89 @@ $(document).ready(function() {
             }
         },
         
-        formatResponseForDisplay: function(content) {
-            // Format content for display in the response panel
-            return content
-                .replace(/\n\n/g, '<br><br>')
+formatResponseForDisplay: function(content) {
+            // Enhanced formatting for better display in the response panel
+            var formatted = content
+                // First, handle paragraph breaks (double line breaks)
+                .replace(/\n\n+/g, '<br><br>')
+                // Then handle single line breaks
                 .replace(/\n/g, '<br>')
+                // Format bold text
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>');
+                // Format italic text
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                // Add proper spacing after sentence endings
+                .replace(/([.!?])\s*([A-Z])/g, '$1 $2')
+                // Handle common email elements
+                .replace(/(Subject:|Dear\s+[^,<]+,|Best\s+regards,|Sincerely,|Kind\s+regards)/gi, '<strong>$1</strong>')
+                // Clean up multiple breaks
+                .replace(/(<br>){3,}/g, '<br><br>');
+            
+            return formatted;
         },
-        
+
         insertResponse: function() {
-            var response_content = $('#llm-response-content').text(); // Get text content, not HTML
+            // Get the formatted HTML content from the response panel
+            var response_html = $('#llm-response-content').html();
+            var response_text = $('#llm-response-content').text();
             
-            if (!response_content) return;
+            if (!response_text) return;
             
-            console.log('[LLM Assistant] Inserting structured response');
-            
-            // Structure the text for better readability
-            var structured_content = this.structureText(response_content);
+            console.log('[LLM Assistant] Inserting formatted response');
             
             try {
                 if (window.rcmail && rcmail.editor) {
                     if (rcmail.editor.editor) {
-                        // TinyMCE editor - insert as HTML
-                        var html_content = this.textToHtml(structured_content);
-                        rcmail.editor.editor.insertContent(html_content);
+                        // TinyMCE editor - insert the formatted HTML directly
+                        // Convert <br> tags to proper paragraphs for better structure
+                        var formatted_html = response_html
+                            .replace(/<br><br>/g, '</p><p>')
+                            .replace(/^/, '<p>')
+                            .replace(/$/, '</p>')
+                            .replace(/<p><\/p>/g, ''); // Remove empty paragraphs
+                        
+                        rcmail.editor.editor.insertContent('<br><br>' + formatted_html);
                     } else {
-                        // Plain text editor
+                        // Plain text editor - convert HTML back to properly formatted text
+                        var formatted_text = response_html
+                            .replace(/<br><br>/g, '\n\n')
+                            .replace(/<br>/g, '\n')
+                            .replace(/<strong>(.*?)<\/strong>/g, '$1')
+                            .replace(/<em>(.*?)<\/em>/g, '$1')
+                            .replace(/<[^>]*>/g, ''); // Strip remaining HTML tags
+                        
                         var current_content = rcmail.editor.get_content();
-                        rcmail.editor.set_content(current_content + '\n\n' + structured_content);
+                        rcmail.editor.set_content(current_content + '\n\n' + formatted_text);
                     }
                 } else {
-                    // Fallback to textarea
+                    // Fallback to textarea - use formatted text
+                    var formatted_text = response_html
+                        .replace(/<br><br>/g, '\n\n')
+                        .replace(/<br>/g, '\n')
+                        .replace(/<strong>(.*?)<\/strong>/g, '$1')
+                        .replace(/<em>(.*?)<\/em>/g, '$1')
+                        .replace(/<[^>]*>/g, ''); // Strip remaining HTML tags
+                    
                     var textarea = $('textarea[name="_message"]');
                     if (textarea.length) {
                         var current_content = textarea.val();
-                        textarea.val(current_content + '\n\n' + structured_content);
+                        textarea.val(current_content + '\n\n' + formatted_text);
                     }
                 }
             } catch (e) {
                 console.error('[LLM Assistant] Error inserting response:', e);
-                // Fallback method
+                // Fallback method - use the formatted text
+                var formatted_text = response_html
+                    .replace(/<br><br>/g, '\n\n')
+                    .replace(/<br>/g, '\n')
+                    .replace(/<strong>(.*?)<\/strong>/g, '$1')
+                    .replace(/<em>(.*?)<\/em>/g, '$1')
+                    .replace(/<[^>]*>/g, '');
+                
                 var textarea = $('textarea[name="_message"]');
                 if (textarea.length) {
                     var current_content = textarea.val();
-                    textarea.val(current_content + '\n\n' + structured_content);
+                    textarea.val(current_content + '\n\n' + formatted_text);
                 }
             }
             
