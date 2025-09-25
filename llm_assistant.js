@@ -17,13 +17,6 @@ $(document).ready(function() {
         current_action: 'reply',
         button: null,
         debug: config.debug,
-        dragData: {
-            isDragging: false,
-            startX: 0,
-            startY: 0,
-            startLeft: 0,
-            startTop: 0
-        },
         
         init: function() {
             console.log('[LLM Assistant] Initializing assistant');
@@ -100,7 +93,7 @@ $(document).ready(function() {
                     "box-shadow": "0 2px 4px rgba(0,0,0,0.2)",
                     transition: "all 0.2s ease"
                 }
-        });
+            });
             
             // Add hover effects
             this.button.hover(
@@ -243,13 +236,25 @@ $(document).ready(function() {
         
         initDragAndResize: function() {
             var self = this;
-            console.log('[LLM Assistant] Initializing drag and resize functionality');
+            console.log('[LLM Assistant] Initializing drag and resize functionality (Ubuntu/Gnome optimized)');
             
             // Load saved position and size
             this.loadPanelState();
             
+            // Robust drag state management for Linux/Gnome compatibility
+            var dragState = {
+                active: false,
+                startX: 0,
+                startY: 0,
+                startLeft: 0,
+                startTop: 0,
+                timeout: null,
+                header: null
+            };
+            
             // Make panel draggable by header
             var header = $('.llm-assistant-header');
+            dragState.header = header;
             
             header.on('mousedown', function(e) {
                 // Don't drag if clicking the close button
@@ -258,26 +263,168 @@ $(document).ready(function() {
                 }
                 
                 e.preventDefault();
-                self.startDrag(e);
+                e.stopPropagation();
+                
+                console.log('[LLM Assistant] Starting drag (Ubuntu/Gnome optimized)');
+                
+                // Prevent any existing drag operations
+                if (dragState.active) {
+                    endDrag();
+                    return;
+                }
+                
+                dragState.active = true;
+                dragState.startX = e.pageX;
+                dragState.startY = e.pageY;
+                
+                var offset = self.panel.offset();
+                dragState.startLeft = offset.left;
+                dragState.startTop = offset.top;
+                
+                // Add visual feedback with forced cursor
+                header.addClass('dragging');
+                self.panel.css({
+                    'pointer-events': 'none',
+                    'z-index': '10001'
+                });
+                
+                $('body').css({
+                    'user-select': 'none',
+                    '-webkit-user-select': 'none',
+                    '-moz-user-select': 'none',
+                    '-ms-user-select': 'none',
+                    'cursor': 'move !important'
+                });
+                
+                // Safety timeout to prevent infinite drag state
+                dragState.timeout = setTimeout(function() {
+                    if (dragState.active) {
+                        console.warn('[LLM Assistant] Drag timeout reached, forcing end');
+                        endDrag();
+                    }
+                }, 10000); // 10 second timeout
             });
             
-            // Global mouse events for dragging
+            // Global mouse move handler
             $(document).on('mousemove', function(e) {
-                if (self.dragData.isDragging) {
-                    e.preventDefault();
-                    self.drag(e);
+                if (!dragState.active) return;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                var deltaX = e.pageX - dragState.startX;
+                var deltaY = e.pageY - dragState.startY;
+                
+                var newLeft = dragState.startLeft + deltaX;
+                var newTop = dragState.startTop + deltaY;
+                
+                // Keep panel within viewport bounds with better boundary detection
+                var windowWidth = $(window).width();
+                var windowHeight = $(window).height();
+                var panelWidth = self.panel.outerWidth();
+                var panelHeight = self.panel.outerHeight();
+                
+                // Minimum 50px visible on each side
+                newLeft = Math.max(-panelWidth + 100, Math.min(windowWidth - 100, newLeft));
+                newTop = Math.max(0, Math.min(windowHeight - 100, newTop));
+                
+                self.panel.css({
+                    left: newLeft + 'px',
+                    top: newTop + 'px',
+                    right: 'auto',
+                    bottom: 'auto'
+                });
+            });
+            
+            // Robust drag end function
+            function endDrag() {
+                if (!dragState.active) return;
+                
+                console.log('[LLM Assistant] Ending drag (Ubuntu/Gnome optimized)');
+                
+                dragState.active = false;
+                
+                // Clear timeout
+                if (dragState.timeout) {
+                    clearTimeout(dragState.timeout);
+                    dragState.timeout = null;
+                }
+                
+                // Remove visual feedback with forced cursor reset
+                if (dragState.header) {
+                    dragState.header.removeClass('dragging');
+                }
+                
+                self.panel.css({
+                    'pointer-events': 'auto',
+                    'z-index': '10000'
+                });
+                
+                $('body').css({
+                    'user-select': 'auto',
+                    '-webkit-user-select': 'auto',
+                    '-moz-user-select': 'auto',
+                    '-ms-user-select': 'auto',
+                    'cursor': 'auto'
+                });
+                
+                // Force cursor reset on header
+                if (dragState.header) {
+                    dragState.header.css('cursor', 'move');
+                }
+                
+                // Save the new position
+                self.savePanelState();
+                
+                // Force a small delay to ensure mouse events are properly released (important for Gnome)
+                setTimeout(function() {
+                    $(document).trigger('mouseup');
+                }, 10);
+            }
+            
+            // Multiple end-drag triggers for better Linux/Gnome compatibility
+            $(document).on('mouseup', endDrag);
+            
+            // Handle mouse leaving document area
+            $(document).on('mouseleave', function(e) {
+                if (dragState.active) {
+                    console.log('[LLM Assistant] Mouse left document, ending drag');
+                    endDrag();
                 }
             });
             
-            $(document).on('mouseup', function(e) {
-                if (self.dragData.isDragging) {
-                    self.endDrag(e);
+            // Handle window blur (user switches to another app)
+            $(window).on('blur', function(e) {
+                if (dragState.active) {
+                    console.log('[LLM Assistant] Window blur, ending drag');
+                    endDrag();
                 }
             });
             
-            // Prevent text selection during drag
+            // ESC key handler to force-end dragging
+            $(document).on('keydown', function(e) {
+                if (e.keyCode === 27 && dragState.active) { // ESC key
+                    console.log('[LLM Assistant] ESC pressed, ending drag');
+                    endDrag();
+                }
+            });
+            
+            // Handle extreme mouse positions (cursor goes off screen)
+            $(document).on('mousemove', function(e) {
+                if (dragState.active) {
+                    // If mouse coordinates are way outside reasonable bounds, end drag
+                    if (e.pageX < -100 || e.pageY < -100 || 
+                        e.pageX > $(window).width() + 100 || 
+                        e.pageY > $(window).height() + 100) {
+                        console.log('[LLM Assistant] Mouse position extreme, ending drag');
+                        endDrag();
+                    }
+                }
+            });
+            
+            // Prevent text selection during any drag operations
             $(document).on('selectstart dragstart', function(e) {
-                if (self.dragData.isDragging) {
+                if (dragState.active) {
                     e.preventDefault();
                     return false;
                 }
@@ -288,77 +435,18 @@ $(document).ready(function() {
                 self.savePanelState();
             });
             
-            // Also save state when panel is hidden
-            this.panel.on('panelHide', function() {
-                self.savePanelState();
-            });
-            
             // Handle window resize to keep panel in bounds
             $(window).on('resize', function() {
                 self.keepPanelInBounds();
             });
-        },
-        
-        startDrag: function(e) {
-            console.log('[LLM Assistant] Starting drag');
             
-            this.dragData.isDragging = true;
-            this.dragData.startX = e.clientX;
-            this.dragData.startY = e.clientY;
-            
-            var panelPos = this.panel.offset();
-            this.dragData.startLeft = panelPos.left;
-            this.dragData.startTop = panelPos.top;
-            
-            // Add visual feedback
-            $('.llm-assistant-header').addClass('dragging');
-            this.panel.css('pointer-events', 'none'); // Prevent interference with other elements
-            $('body').css('user-select', 'none'); // Prevent text selection
-            
-            // Bring panel to front
-            this.panel.css('z-index', '10001');
-        },
-        
-        drag: function(e) {
-            if (!this.dragData.isDragging) return;
-            
-            var deltaX = e.clientX - this.dragData.startX;
-            var deltaY = e.clientY - this.dragData.startY;
-            
-            var newLeft = this.dragData.startLeft + deltaX;
-            var newTop = this.dragData.startTop + deltaY;
-            
-            // Keep panel within viewport bounds
-            var windowWidth = $(window).width();
-            var windowHeight = $(window).height();
-            var panelWidth = this.panel.outerWidth();
-            var panelHeight = this.panel.outerHeight();
-            
-            // Minimum 50px visible on each side
-            newLeft = Math.max(-panelWidth + 50, Math.min(windowWidth - 50, newLeft));
-            newTop = Math.max(0, Math.min(windowHeight - 50, newTop));
-            
-            this.panel.css({
-                left: newLeft + 'px',
-                top: newTop + 'px',
-                right: 'auto', // Remove right positioning
-                bottom: 'auto' // Remove bottom positioning
-            });
-        },
-        
-        endDrag: function(e) {
-            console.log('[LLM Assistant] Ending drag');
-            
-            this.dragData.isDragging = false;
-            
-            // Remove visual feedback
-            $('.llm-assistant-header').removeClass('dragging');
-            this.panel.css('pointer-events', 'auto');
-            $('body').css('user-select', 'auto');
-            this.panel.css('z-index', '10000');
-            
-            // Save the new position
-            this.savePanelState();
+            // Additional safety: check drag state every 5 seconds and reset if stuck
+            setInterval(function() {
+                if (dragState.active && dragState.timeout === null) {
+                    console.warn('[LLM Assistant] Drag state stuck, resetting');
+                    endDrag();
+                }
+            }, 5000);
         },
         
         savePanelState: function() {
@@ -477,7 +565,7 @@ $(document).ready(function() {
         hidePanel: function() {
             console.log('[LLM Assistant] Hiding panel');
             this.panel.hide();
-            this.panel.trigger('panelHide'); // Custom event for saving state
+            this.savePanelState(); // Save state when hiding
         },
         
         setAction: function(action) {
