@@ -108,6 +108,120 @@ $config['llm_assistant_max_tokens'] = 1000;
 // Response creativity (0.0 = focused, 1.0 = creative)
 $config['llm_assistant_temperature'] = 0.7;
 ```
+The `max_tokens` value of 1000 is a **moderate size** for AI responses. Let me explain what this means with practical examples:
+
+## What are tokens?
+
+Tokens are the basic units that AI models use to process text. Roughly:
+- **1 token ≈ 0.75 words** (for English)
+- **1000 tokens ≈ 750 words**
+- **1000 tokens ≈ 3-4 paragraphs** of typical email content
+
+## Practical Examples
+
+### **1000 tokens can generate:**
+
+**✅ Professional Reply (350 tokens):**
+```
+Dear Mr. Johnson,
+
+Thank you for your email regarding the quarterly sales report. I appreciate you taking the time to review our performance metrics.
+
+I'm pleased to confirm that we can schedule a meeting to discuss the findings in detail. Based on your availability, I suggest we meet next Tuesday, March 15th, at 2:00 PM in Conference Room B.
+
+I'll prepare a comprehensive presentation covering the key insights, market trends, and our recommendations for Q2 strategy. Please let me know if you need any specific data points or analysis beforehand.
+
+Looking forward to our discussion.
+
+Best regards,
+[Your name]
+```
+
+**✅ Email Composition (450 tokens):**
+```
+Subject: Partnership Proposal - Digital Marketing Services
+
+Dear Ms. Rodriguez,
+
+I hope this email finds you well. My name is [Name], and I'm reaching out from [Company] regarding a potential partnership opportunity that could benefit both our organizations.
+
+We've been following your company's impressive growth in the e-commerce sector and believe our digital marketing expertise could help accelerate your expansion plans. Our agency specializes in:
+
+• Search engine optimization (SEO)
+• Pay-per-click advertising (PPC)  
+• Social media marketing campaigns
+• Content marketing strategies
+• Analytics and performance tracking
+
+We've helped similar companies in your industry increase their online revenue by 35-50% within the first six months of collaboration. I'd love to schedule a brief 30-minute call to discuss how we might work together.
+
+Would you be available for a conversation next week? I'm flexible with timing and can accommodate your schedule.
+
+Thank you for considering this opportunity. I look forward to hearing from you.
+
+Best regards,
+[Your signature]
+```
+
+### **1000 tokens is sufficient for:**
+- ✅ Standard business emails
+- ✅ Professional replies
+- ✅ Meeting requests
+- ✅ Project updates
+- ✅ Customer service responses
+- ✅ Follow-up emails
+- ✅ Brief proposals
+
+### **1000 tokens might be limiting for:**
+- ❌ Long detailed reports
+- ❌ Comprehensive proposals (5+ pages)
+- ❌ Technical documentation
+- ❌ Multi-topic newsletters
+- ❌ Legal documents
+
+## Configuration Recommendations
+
+### **Conservative (Cost-effective):**
+```php
+$config['llm_assistant_max_tokens'] = 500;  // ~375 words
+```
+Good for: Quick replies, short emails, basic assistance
+
+### **Balanced (Recommended):**
+```php
+$config['llm_assistant_max_tokens'] = 1000; // ~750 words  
+```
+Good for: Most business emails, standard communications
+
+### **Generous:**
+```php
+$config['llm_assistant_max_tokens'] = 2000; // ~1500 words
+```
+Good for: Detailed emails, comprehensive responses, complex topics
+
+### **Maximum:**
+```php
+$config['llm_assistant_max_tokens'] = 4000; // ~3000 words
+```
+Good for: Long-form content, detailed proposals, extensive documentation
+
+## Cost Implications
+
+With OpenAI's pricing (approximate):
+- **GPT-3.5-turbo**: 1000 tokens ≈ $0.002
+- **GPT-4**: 1000 tokens ≈ $0.03-0.06
+
+So 1000 tokens is quite reasonable for regular use without breaking the budget.
+
+## My Recommendation
+
+**Keep 1000 tokens** as it provides a good balance between:
+- ✅ Sufficient length for most email needs
+- ✅ Reasonable API costs  
+- ✅ Fast response times
+- ✅ Practical for daily use
+
+You can always increase it to 1500-2000 if you find yourself needing longer responses regularly.
 
 ## 🎯 Usage Guide
 
